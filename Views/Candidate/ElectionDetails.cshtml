@@ -1,0 +1,47 @@
+﻿@model VotingApp.Models.Candidate
+
+@{
+    ViewData["Title"] = "Election Details";
+}
+
+<h2>Election: @Model.Election.Name</h2>
+
+<p><strong>Start Date:</strong> @Model.Election.StartDate.ToString("yyyy-MM-dd")</p>
+<p><strong>End Date:</strong> @Model.Election.EndDate.ToString("yyyy-MM-dd")</p>
+<p><strong>Total Votes Received:</strong> @Model.Votes.Count()</p>
+
+<h3>Voters</h3>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Voter Name</th>
+            <th>Email</th>
+            <th>Vote Time</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model.Votes.Any())
+        {
+            int index = 1;
+            foreach (var vote in Model.Votes)
+            {
+                <tr>
+                    <td>@index</td>
+                    <td>@vote.User.Name</td>
+                    <td>@vote.User.Email</td>
+                    <td>@vote.VoteTime.ToString("yyyy-MM-dd HH:mm")</td>
+                </tr>
+                index++;
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="4" class="text-center">No votes yet.</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<a asp-action="Dashboard" class="btn btn-secondary">Back to Dashboard</a>

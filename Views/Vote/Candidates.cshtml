@@ -1,0 +1,62 @@
+﻿@model VotingApp.Models.Election
+
+@{
+    ViewData["Title"] = "Candidates";
+}
+
+<h2>Candidates for @Model.Name</h2>
+
+@if (ViewBag.HasVoted != null && ViewBag.HasVoted == true)
+{
+    <div class="alert alert-warning">You have already voted in this election.</div>
+}
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Candidate Name</th>
+            <th>Email</th>
+            <th>NIC</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model.Candidates.Any())
+        {
+            int index = 1;
+            foreach (var candidate in Model.Candidates)
+            {
+                <tr>
+                    <td>@index</td>
+                    <td>@candidate.User.Name</td>
+                    <td>@candidate.User.Email</td>
+                    <td>@candidate.User.NIC</td>
+                    <td>
+                        @if (!(ViewBag.HasVoted ?? false))
+                        {
+                            <form method="post" asp-action="CastVote">
+                                <input type="hidden" name="candidateId" value="@candidate.Id" />
+                                <input type="hidden" name="electionId" value="@Model.Id" />
+                                <button type="submit" class="btn btn-success">Vote</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <span class="text-muted">Vote Casted</span>
+                        }
+                    </td>
+                </tr>
+                index++;
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="5" class="text-center">No candidates available.</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<a asp-action="Elections" class="btn btn-secondary mt-3">Back to Elections</a>

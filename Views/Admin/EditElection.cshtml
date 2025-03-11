@@ -1,0 +1,39 @@
+﻿@model VotingApp.Models.Election
+
+<h2>Edit Election</h2>
+<form method="post" asp-action="EditElection">
+    <input type="hidden" asp-for="Id" />
+
+    <div class="form-group">
+        <label>Name</label>
+        <input type="text" asp-for="Name" class="form-control" required>
+    </div>
+
+    <div class="form-group">
+        <label>Start Date</label>
+        <input type="date" asp-for="StartDate" class="form-control" required min="@DateTime.Now.ToString("yyyy-MM-dd")">
+        <span asp-validation-for="StartDate" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label>End Date</label>
+        <input type="date" asp-for="EndDate" class="form-control" required>
+        <span asp-validation-for="EndDate" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Update Election</button>
+</form>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger">
+        <ul>
+            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <li>@error.ErrorMessage</li>
+            }
+        </ul>
+    </div>
+}
+
+<a asp-action="Elections" class="btn btn-secondary mt-3">Back to Elections</a>

@@ -1,0 +1,45 @@
+﻿@model VotingApp.Models.User
+
+@{
+    ViewData["Title"] = "Register";
+}
+
+<h2>Register</h2>
+
+<form method="post" asp-action="Register">
+    <div class="form-group">
+        <label>Name</label>
+        <input type="text" class="form-control" asp-for="Name" required>
+    </div>
+
+    <div class="form-group">
+        <label>Email</label>
+        <input type="email" class="form-control" asp-for="Email" required>
+    </div>
+
+    <div class="form-group">
+        <label>NIC</label>
+        <input type="text" class="form-control" asp-for="NIC" required>
+    </div>
+
+    <div class="form-group">
+        <label>Password</label>
+        <input type="password" class="form-control" asp-for="PasswordHash" required>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Register</button>
+</form>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger">
+        <ul>
+            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <li>@error.ErrorMessage</li>
+            }
+        </ul>
+    </div>
+}
+
+<p>Already have an account? <a asp-action="Login">Login here</a></p>

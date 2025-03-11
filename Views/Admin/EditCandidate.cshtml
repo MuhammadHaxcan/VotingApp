@@ -1,0 +1,46 @@
+﻿@model VotingApp.Models.Candidate
+
+@{
+    ViewData["Title"] = "Edit Candidate";
+}
+
+<h2>Edit Candidate</h2>
+<form method="post" asp-action="EditCandidate">
+    <input type="hidden" asp-for="Id" />
+
+    <div class="form-group">
+        <label>Name</label>
+        <input type="text" name="name" class="form-control" value="@Model.User.Name" required>
+    </div>
+
+    <div class="form-group">
+        <label>Email</label>
+        <input type="email" name="email" class="form-control" value="@Model.User.Email" required>
+    </div>
+
+    <div class="form-group">
+        <label>NIC</label>
+        <input type="text" name="nic" class="form-control" value="@Model.User.NIC" required>
+    </div>
+
+    <div class="form-group">
+        <label>Election</label>
+        <select name="electionId" class="form-control">
+            @foreach (var election in ViewBag.Elections)
+            {
+                <option value="@election.Id" selected="@(Model.ElectionId == election.Id ? "selected" : null)">
+                    @election.Name
+                </option>
+            }
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Password (Leave empty to keep unchanged)</label>
+        <input type="text" name="password" class="form-control">
+    </div>
+
+    <button type="submit" class="btn btn-primary">Update Candidate</button>
+</form>
+
+<a asp-action="Users" class="btn btn-secondary mt-3">Back to Candidates List</a>

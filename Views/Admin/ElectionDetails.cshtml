@@ -1,0 +1,67 @@
+﻿@model VotingApp.Models.Election
+
+@{
+    ViewData["Title"] = "Election Details";
+}
+
+<h2>Election: @Model.Name</h2>
+
+<p><strong>Start Date:</strong> @Model.StartDate.ToString("yyyy-MM-dd")</p>
+<p><strong>End Date:</strong> @Model.EndDate.ToString("yyyy-MM-dd")</p>
+<p><strong>Status:</strong> @Model.Status</p>
+
+@if (Model.Status == "Scheduled")
+{
+    <div class="alert alert-info">This election is scheduled to start soon.</div>
+}
+else if (Model.Status == "Ongoing")
+{
+    <h3>Live Voting Results</h3>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Candidate Name</th>
+                <th>Votes Received</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Candidates.Any())
+            {
+                int index = 1;
+                foreach (var candidate in Model.Candidates.OrderByDescending(c => c.Votes.Count))
+                {
+                    <tr>
+                        <td>@index</td>
+                        <td>@candidate.User.Name</td>
+                        <td>@candidate.Votes.Count</td>
+                    </tr>
+                    index++;
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="3" class="text-center">No votes yet.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else if (Model.Status == "Completed")
+{
+    <h3>Election Winner</h3>
+    @if (ViewBag.Winner != null)
+    {
+        <div class="alert alert-success">
+            <h4>@ViewBag.Winner.User.Name</h4>
+            <p>Votes Received: @ViewBag.Winner.Votes.Count</p>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning">No votes were cast in this election.</div>
+    }
+}
+
+<a asp-action="Elections" class="btn btn-secondary mt-3">Back to Elections</a>

@@ -1,0 +1,46 @@
+﻿@model IEnumerable<VotingApp.Models.Election>
+
+@{
+    ViewData["Title"] = "Elections";
+}
+
+<h2>Elections</h2>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var election in Model)
+        {
+            <tr>
+                <td>@election.Name</td>
+                <td>@election.Status</td>
+                <td>@election.StartDate.ToShortDateString()</td>
+                <td>@election.EndDate.ToShortDateString()</td>
+                <td>
+                    <a class="btn btn-info" href="@Url.Action("ElectionDetails", "Vote", new { electionId = election.Id })">View Details</a>
+                    @if (election.Status == "Ongoing")
+                    {
+                        <a class="btn btn-primary" href="@Url.Action("Candidates", "Vote", new { electionId = election.Id })">Vote</a>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

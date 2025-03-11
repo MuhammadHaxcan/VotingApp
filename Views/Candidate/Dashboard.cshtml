@@ -1,0 +1,44 @@
+﻿@model IEnumerable<VotingApp.Models.Candidate>
+
+@{
+    ViewData["Title"] = "Candidate Dashboard";
+}
+
+<h2>Your Elections</h2>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Election Name</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>View Details</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model.Any())
+        {
+            int index = 1;
+            foreach (var candidate in Model)
+            {
+                <tr>
+                    <td>@index</td>
+                    <td>@candidate.Election.Name</td>
+                    <td>@candidate.Election.StartDate.ToString("yyyy-MM-dd")</td>
+                    <td>@candidate.Election.EndDate.ToString("yyyy-MM-dd")</td>
+                    <td>
+                        <a asp-action="ElectionDetails" asp-route-electionId="@candidate.ElectionId" class="btn btn-info">View Votes</a>
+                    </td>
+                </tr>
+                index++;
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="5" class="text-center">You are not participating in any elections.</td>
+            </tr>
+        }
+    </tbody>
+</table>

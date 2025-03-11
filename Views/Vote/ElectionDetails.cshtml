@@ -1,0 +1,43 @@
+﻿@model VotingApp.Models.Election
+
+@{
+    ViewData["Title"] = "Election Details";
+}
+
+<h2>@Model.Name</h2>
+<p><strong>Status:</strong> @Model.Status</p>
+<p><strong>Start Date:</strong> @Model.StartDate.ToShortDateString()</p>
+<p><strong>End Date:</strong> @Model.EndDate.ToShortDateString()</p>
+
+<h3>Candidates</h3>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Candidate Name</th>
+            <th>Vote Count</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var candidate in Model.Candidates)
+        {
+            <tr>
+                <td>@candidate.User.Name</td>
+                <td>@(ViewBag.VoteCounts.ContainsKey(candidate.Id) ? ViewBag.VoteCounts[candidate.Id] : 0)</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (Model.EndDate < DateTime.UtcNow)
+{
+    <h3>Winner</h3>
+    @if (ViewBag.Winner != null)
+    {
+        <p><strong>Winner:</strong> @ViewBag.Winner.User.Name</p>
+    }
+    else
+    {
+        <p>No votes were cast in this election.</p>
+    }
+}

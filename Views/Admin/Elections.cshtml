@@ -1,0 +1,52 @@
+﻿@model IEnumerable<VotingApp.Models.Election>
+
+@{
+    ViewData["Title"] = "Elections";
+}
+
+<h2>All Elections</h2>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model.Any())
+        {
+            int index = 1;
+            foreach (var election in Model)
+            {
+                <tr>
+                    <td>@index</td>
+                    <td>@election.Name</td>
+                    <td>@election.StartDate.ToString("yyyy-MM-dd")</td>
+                    <td>@election.EndDate.ToString("yyyy-MM-dd")</td>
+                    <td>
+                        <span class="badge @(election.Status == "Upcoming" ? "badge-warning" : election.Status == "Ongoing" ? "badge-success" : "badge-secondary")">
+                            @election.Status
+                        </span>
+                    </td>
+                    <td>
+                        <a asp-action="ElectionDetails" asp-route-id="@election.Id" class="btn btn-sm btn-info">View Details</a>
+                        <a asp-action="EditElection" asp-route-id="@election.Id" class="btn btn-sm btn-warning">Edit</a>
+                        <a asp-action="DeleteElection" asp-route-id="@election.Id" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this election?');">Delete</a>
+                    </td>
+                </tr>
+                index++;
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="6" class="text-center">No elections found.</td>
+            </tr>
+        }
+    </tbody>
+</table>
