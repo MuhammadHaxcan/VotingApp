@@ -14,7 +14,7 @@ namespace VotingApp.Models
         [Required]
         public int ElectionId { get; set; }
 
-        public DateTime VoteTime { get; set; } = DateTime.UtcNow;
+        public DateTime VoteTime { get; set; } = DateTime.Now;
 
         // Navigation properties
         public User User { get; set; }

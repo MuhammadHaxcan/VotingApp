@@ -45,13 +45,7 @@ public class VoteController : Controller
             return RedirectToAction("Elections");
         }
 
-        // Update election status if it has ended
-        if (election.EndDate < DateTime.UtcNow && election.Status != "Completed")
-        {
-            election.Status = "Completed";
-            _context.Elections.Update(election);
-            await _context.SaveChangesAsync();
-        }
+        UpdateElectionStatuses();
 
         // Determine the winner if the election is completed
         Candidate winner = null;
@@ -118,7 +112,7 @@ public class VoteController : Controller
             UserId = userId,
             CandidateId = candidateId,
             ElectionId = electionId,
-            VoteTime = DateTime.UtcNow
+            VoteTime = DateTime.Now
         };
 
         _context.Votes.Add(vote);
@@ -153,7 +147,7 @@ public class VoteController : Controller
     // Determines the correct status for an election based on the date
     private string GetElectionStatus(DateTime startDate, DateTime endDate)
     {
-        DateTime now = DateTime.UtcNow;
+        DateTime now = DateTime.Now;
 
         if (now < startDate)
             return "Upcoming";
