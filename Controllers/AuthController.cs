@@ -2,11 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
-using System.Linq;
 using VotingApp.Models;
 using VotingApp.Data;
-using Microsoft.AspNetCore.Http;
 
 public class AuthController : Controller
 {
@@ -33,6 +30,12 @@ public class AuthController : Controller
             if (await _context.Users.AnyAsync(u => u.Email == model.Email || u.NIC == model.NIC))
             {
                 ModelState.AddModelError("", "Email or NIC is already registered.");
+                return View(model);
+            }
+
+            if (model.PasswordHash.Length < 6)
+            {
+                ModelState.AddModelError("", "The password Length is insufficient");
                 return View(model);
             }
 
@@ -88,7 +91,13 @@ public class AuthController : Controller
         HttpContext.Session.SetString("UserName", user.Name);
         HttpContext.Session.SetString("UserRole", userRole); // Store role as a string
 
-        return RedirectToAction("Dashboard", "Home");
+        // Redirect based on role
+        return userRole switch
+        {
+            "Admin" => RedirectToAction("Dashboard", "Admin"),
+            "Candidate" => RedirectToAction("Dashboard", "Candidate"),
+            _ => RedirectToAction("Elections", "Vote"), // Default for Voter
+        };
     }
 
     // Logout

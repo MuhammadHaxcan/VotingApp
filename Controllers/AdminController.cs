@@ -1,12 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using VotingApp.Data;
 using VotingApp.Models;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
-using System.Linq;
+
 
 public class AdminController : Controller
 {
@@ -38,10 +36,10 @@ public class AdminController : Controller
 
     // Create Election (POST)
     [HttpPost]
-    [HttpPost]
     public async Task<IActionResult> CreateElection(Election model)
     {
         if (!IsAdmin()) return RedirectToAction("Login", "Auth");
+
         ModelState.Remove("Votes");
         ModelState.Remove("Status");
         ModelState.Remove("Candidates");
@@ -61,19 +59,25 @@ public class AdminController : Controller
             return View(model);
         }
 
-        // Set election status automatically
-        model.Status = GetElectionStatus(model.StartDate, model.EndDate);
+        try
+        {
+            // Set election status automatically
+            model.Status = GetElectionStatus(model.StartDate, model.EndDate);
 
-        _context.Elections.Add(model);
-        await _context.SaveChangesAsync();
+            _context.Elections.Add(model);
+            await _context.SaveChangesAsync();
 
-        // Ensure the status is correctly stored
-        UpdateElectionStatuses();
-
-        return RedirectToAction("Elections");
+            TempData["SuccessMessage"] = "Election created successfully!";
+            return RedirectToAction("Elections");
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = "An error occurred while creating the election.";
+            return View(model);
+        }
     }
-    // View All Elections (Auto-update statuses)
-    // View All Elections (Fetch from DB)
+
+    // View All Elections
     public async Task<IActionResult> Elections()
     {
         if (!IsAdmin()) return RedirectToAction("Login", "Auth");
@@ -84,110 +88,19 @@ public class AdminController : Controller
         return View(elections);
     }
 
-
-    // Method to update election statuses
-    private void UpdateElectionStatuses()
-    {
-        var elections = _context.Elections.ToList();
-        foreach (var election in elections)
-        {
-            string newStatus = GetElectionStatus(election.StartDate, election.EndDate);
-            if (election.Status != newStatus)
-            {
-                election.Status = newStatus;
-            }
-        }
-        _context.SaveChanges(); // Ensure updated statuses are stored in DB
-    }
-
-
-    // Determines the correct status for an election based on the date
-    private string GetElectionStatus(DateTime startDate, DateTime endDate)
-    {
-        DateTime now = DateTime.Now;
-
-        if (now < startDate)
-            return "Upcoming";
-        else if (now >= startDate && now <= endDate)
-            return "Ongoing";
-        else
-            return "Completed";
-    }
-
-    // Create Candidate (GET)
-    public IActionResult CreateCandidate()
-    {
-        if (!IsAdmin()) return RedirectToAction("Login", "Auth");
-
-        ViewBag.Elections = _context.Elections.ToList();
-        return View();
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> CreateCandidate(string name, string email, string nic, int electionId)
-    {
-        if (!IsAdmin()) return RedirectToAction("Login", "Auth");
-
-        // Check if email or NIC exists
-        if (await _context.Users.AnyAsync(u => u.Email == email || u.NIC == nic))
-        {
-            ModelState.AddModelError("", "Email or NIC already exists.");
-            ViewBag.Elections = _context.Elections.ToList();
-            return View();
-        }
-
-        // Generate Random Password
-        var password = GenerateRandomPassword();
-
-        // Create Candidate Account
-        var user = new User
-        {
-            Name = name,
-            Email = email,
-            NIC = nic,
-            PasswordHash = HashPassword(password)
-        };
-
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-
-        // Assign Role (Candidate)
-        var candidateRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Candidate");
-        if (candidateRole != null)
-        {
-            _context.UserRoles.Add(new UserRole
-            {
-                UserId = user.Id,
-                RoleId = candidateRole.Id
-            });
-            await _context.SaveChangesAsync();
-        }
-
-        // Assign Candidate to Election & Store Password
-        var candidate = new Candidate
-        {
-            UserId = user.Id,
-            ElectionId = electionId,
-            Password = password // ✅ Store the raw password in Candidate table
-        };
-
-        _context.Candidates.Add(candidate);
-        await _context.SaveChangesAsync();
-
-        return RedirectToAction("Users"); // ✅ Redirect to Users List
-    }
-
-
-
     // Edit Election (GET)
     public async Task<IActionResult> EditElection(int id)
     {
         if (!IsAdmin()) return RedirectToAction("Login", "Auth");
 
         var election = await _context.Elections.FindAsync(id);
-        if (election == null) return NotFound();
+        if (election == null)
+        {
+            TempData["ErrorMessage"] = "Election not found.";
+            return RedirectToAction("Elections");
+        }
 
-        return View(election); // ✅ Separate Edit Election page
+        return View(election);
     }
 
     // Edit Election (POST)
@@ -215,19 +128,32 @@ public class AdminController : Controller
             return View(model);
         }
 
-        var election = await _context.Elections.FindAsync(model.Id);
-        if (election == null) return NotFound();
+        try
+        {
+            var election = await _context.Elections.FindAsync(model.Id);
+            if (election == null)
+            {
+                TempData["ErrorMessage"] = "Election not found.";
+                return RedirectToAction("Elections");
+            }
 
-        // Update election details
-        election.Name = model.Name;
-        election.StartDate = model.StartDate;
-        election.EndDate = model.EndDate;
-        election.Status = GetElectionStatus(model.StartDate, model.EndDate); // Auto-update status
+            // Update election details
+            election.Name = model.Name;
+            election.StartDate = model.StartDate;
+            election.EndDate = model.EndDate;
+            election.Status = GetElectionStatus(model.StartDate, model.EndDate); // Auto-update status
 
-        _context.Elections.Update(election);
-        await _context.SaveChangesAsync();
+            _context.Elections.Update(election);
+            await _context.SaveChangesAsync();
 
-        return RedirectToAction("Elections");
+            TempData["SuccessMessage"] = "Election updated successfully!";
+            return RedirectToAction("Elections");
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = "An error occurred while updating the election.";
+            return View(model);
+        }
     }
 
     // Delete Election
@@ -236,14 +162,110 @@ public class AdminController : Controller
         if (!IsAdmin()) return RedirectToAction("Login", "Auth");
 
         var election = await _context.Elections.FindAsync(id);
-        if (election == null) return NotFound();
+        if (election == null)
+        {
+            TempData["ErrorMessage"] = "Election not found.";
+            return RedirectToAction("Elections");
+        }
 
-        _context.Elections.Remove(election);
-        await _context.SaveChangesAsync();
+        try
+        {
+            _context.Elections.Remove(election);
+            await _context.SaveChangesAsync();
 
-        return RedirectToAction("Elections"); // Redirect back to elections list
+            TempData["SuccessMessage"] = "Election deleted successfully!";
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = "An error occurred while deleting the election.";
+        }
+
+        return RedirectToAction("Elections");
     }
 
+    // Create Candidate (GET)
+    public IActionResult CreateCandidate()
+    {
+        if (!IsAdmin()) return RedirectToAction("Login", "Auth");
+
+        ViewBag.Elections = _context.Elections.ToList();
+        return View();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateCandidate(string name, string email, string nic, int electionId)
+    {
+        if (!IsAdmin()) return RedirectToAction("Login", "Auth");
+
+        // Manually validate NIC length
+        if (nic.Length != 13)
+        {
+            ModelState.AddModelError("nic", "NIC must be exactly 13 characters long.");
+        }
+
+        // Check if email or NIC exists
+        if (await _context.Users.AnyAsync(u => u.Email == email || u.NIC == nic))
+        {
+            ModelState.AddModelError("", "Email or NIC already exists.");
+        }
+
+        // Check if the model state is valid
+        if (!ModelState.IsValid)
+        {
+            ViewBag.Elections = _context.Elections.ToList();
+            return View();
+        }
+
+        try
+        {
+            // Generate Random Password
+            var password = GenerateRandomPassword();
+
+            // Create Candidate Account
+            var user = new User
+            {
+                Name = name,
+                Email = email,
+                NIC = nic,
+                PasswordHash = HashPassword(password)
+            };
+
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+
+            // Assign Role (Candidate)
+            var candidateRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Candidate");
+            if (candidateRole != null)
+            {
+                _context.UserRoles.Add(new UserRole
+                {
+                    UserId = user.Id,
+                    RoleId = candidateRole.Id
+                });
+                await _context.SaveChangesAsync();
+            }
+
+            // Assign Candidate to Election & Store Password
+            var candidate = new Candidate
+            {
+                UserId = user.Id,
+                ElectionId = electionId,
+                Password = password // Store the raw password in Candidate table
+            };
+
+            _context.Candidates.Add(candidate);
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Candidate created successfully!";
+            return RedirectToAction("Users");
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = "An error occurred while creating the candidate.";
+            ViewBag.Elections = _context.Elections.ToList();
+            return View();
+        }
+    }
     // Edit Candidate (GET)
     public async Task<IActionResult> EditCandidate(int id)
     {
@@ -254,7 +276,11 @@ public class AdminController : Controller
             .Include(c => c.Election)
             .FirstOrDefaultAsync(c => c.Id == id);
 
-        if (candidate == null) return NotFound();
+        if (candidate == null)
+        {
+            TempData["ErrorMessage"] = "Candidate not found.";
+            return RedirectToAction("Users");
+        }
 
         ViewBag.Elections = await _context.Elections.ToListAsync(); // Provide elections list for selection
         return View(candidate);
@@ -267,23 +293,38 @@ public class AdminController : Controller
         if (!IsAdmin()) return RedirectToAction("Login", "Auth");
 
         var candidate = await _context.Candidates.Include(c => c.User).FirstOrDefaultAsync(c => c.Id == id);
-        if (candidate == null) return NotFound();
-
-        // Update User Information
-        candidate.User.Name = name;
-        candidate.User.Email = email;
-        candidate.User.NIC = nic;
-        candidate.ElectionId = electionId;
-
-        // Update Password if changed
-        if (!string.IsNullOrEmpty(password))
+        if (candidate == null)
         {
-            candidate.Password = password;
-            candidate.User.PasswordHash = HashPassword(password);
+            TempData["ErrorMessage"] = "Candidate not found.";
+            return RedirectToAction("Users");
         }
 
-        await _context.SaveChangesAsync();
-        return RedirectToAction("Users"); // Redirect back to candidates list
+        try
+        {
+            // Update User Information
+            candidate.User.Name = name;
+            candidate.User.Email = email;
+            candidate.User.NIC = nic;
+            candidate.ElectionId = electionId;
+
+            // Update Password if changed
+            if (!string.IsNullOrEmpty(password))
+            {
+                candidate.Password = password;
+                candidate.User.PasswordHash = HashPassword(password);
+            }
+
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Candidate updated successfully!";
+            return RedirectToAction("Users");
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = "An error occurred while updating the candidate.";
+            ViewBag.Elections = await _context.Elections.ToListAsync();
+            return View(candidate);
+        }
     }
 
     // Delete Candidate
@@ -292,19 +333,32 @@ public class AdminController : Controller
         if (!IsAdmin()) return RedirectToAction("Login", "Auth");
 
         var candidate = await _context.Candidates.Include(c => c.User).FirstOrDefaultAsync(c => c.Id == id);
-        if (candidate == null) return NotFound();
+        if (candidate == null)
+        {
+            TempData["ErrorMessage"] = "Candidate not found.";
+            return RedirectToAction("Users");
+        }
 
-        // Remove Candidate from DB
-        _context.Candidates.Remove(candidate);
+        try
+        {
+            // Remove Candidate from DB
+            _context.Candidates.Remove(candidate);
 
-        // Remove User associated with Candidate
-        _context.Users.Remove(candidate.User);
+            // Remove User associated with Candidate
+            _context.Users.Remove(candidate.User);
 
-        await _context.SaveChangesAsync();
-        return RedirectToAction("Users"); // Redirect to candidates list
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Candidate deleted successfully!";
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = "An error occurred while deleting the candidate.";
+        }
+
+        return RedirectToAction("Users");
     }
 
-    // View Election Details (Admin)
     // View Election Details (Admin)
     public async Task<IActionResult> ElectionDetails(int id)
     {
@@ -317,7 +371,11 @@ public class AdminController : Controller
             .ThenInclude(c => c.Votes) // Ensure Votes are included
             .FirstOrDefaultAsync(e => e.Id == id);
 
-        if (election == null) return NotFound();
+        if (election == null)
+        {
+            TempData["ErrorMessage"] = "Election not found.";
+            return RedirectToAction("Elections");
+        }
 
         // Determine the winner (if election is completed)
         Candidate winner = null;
@@ -332,7 +390,6 @@ public class AdminController : Controller
         return View(election);
     }
 
-
     // View All Users
     public async Task<IActionResult> Users()
     {
@@ -341,9 +398,8 @@ public class AdminController : Controller
         var users = await _context.Users
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
-            .Include(u => u.Candidates) 
-            .ThenInclude(c => c.Election) 
-
+            .Include(u => u.Candidates)
+            .ThenInclude(c => c.Election)
             .ToListAsync();
 
         return View(users);
@@ -370,5 +426,33 @@ public class AdminController : Controller
             var hash = sha256.ComputeHash(bytes);
             return Convert.ToBase64String(hash);
         }
+    }
+
+    // Method to update election statuses
+    private void UpdateElectionStatuses()
+    {
+        var elections = _context.Elections.ToList();
+        foreach (var election in elections)
+        {
+            string newStatus = GetElectionStatus(election.StartDate, election.EndDate);
+            if (election.Status != newStatus)
+            {
+                election.Status = newStatus;
+            }
+        }
+        _context.SaveChanges(); // Ensure updated statuses are stored in DB
+    }
+
+    // Determines the correct status for an election based on the date
+    private string GetElectionStatus(DateTime startDate, DateTime endDate)
+    {
+        DateTime now = DateTime.Now;
+
+        if (now < startDate)
+            return "Upcoming";
+        else if (now >= startDate && now <= endDate)
+            return "Ongoing";
+        else
+            return "Completed";
     }
 }

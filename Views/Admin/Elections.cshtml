@@ -4,49 +4,64 @@
     ViewData["Title"] = "Elections";
 }
 
-<h2>All Elections</h2>
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h2>All Elections</h2>
+    </div>
+    <div class="card-body">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+        }
 
-<table class="table table-bordered">
-    <thead>
-        <tr>
-            <th>#</th>
-            <th>Name</th>
-            <th>Start Date</th>
-            <th>End Date</th>
-            <th>Status</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (Model.Any())
+        @if (TempData["ErrorMessage"] != null)
         {
-            int index = 1;
-            foreach (var election in Model)
-            {
+            <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+        }
+
+        <table class="table table-striped">
+            <thead>
                 <tr>
-                    <td>@index</td>
-                    <td>@election.Name</td>
-                    <td>@election.StartDate.ToString("yyyy-MM-dd")</td>
-                    <td>@election.EndDate.ToString("yyyy-MM-dd")</td>
-                    <td>
-                        <span class="badge @(election.Status == "Upcoming" ? "badge-warning" : election.Status == "Ongoing" ? "badge-success" : "badge-secondary")">
-                            @election.Status
-                        </span>
-                    </td>
-                    <td>
-                        <a asp-action="ElectionDetails" asp-route-id="@election.Id" class="btn btn-sm btn-info">View Details</a>
-                        <a asp-action="EditElection" asp-route-id="@election.Id" class="btn btn-sm btn-warning">Edit</a>
-                        <a asp-action="DeleteElection" asp-route-id="@election.Id" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this election?');">Delete</a>
-                    </td>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Status</th>
+                    <th>Actions</th>
                 </tr>
-                index++;
-            }
-        }
-        else
-        {
-            <tr>
-                <td colspan="6" class="text-center">No elections found.</td>
-            </tr>
-        }
-    </tbody>
-</table>
+            </thead>
+            <tbody>
+                @if (Model.Any())
+                {
+                    int index = 1;
+                    foreach (var election in Model)
+                    {
+                        <tr>
+                            <td>@index</td>
+                            <td>@election.Name</td>
+                            <td>@election.StartDate.ToString("yyyy-MM-dd")</td>
+                            <td>@election.EndDate.ToString("yyyy-MM-dd")</td>
+                            <td>
+                                <span class="badge @(election.Status == "Upcoming" ? "badge-warning" : election.Status == "Ongoing" ? "badge-success" : "badge-secondary")">
+                                    @election.Status
+                                </span>
+                            </td>
+                            <td>
+                                <a asp-action="ElectionDetails" asp-route-id="@election.Id" class="btn btn-sm btn-info">View Details</a>
+                                <a asp-action="EditElection" asp-route-id="@election.Id" class="btn btn-sm btn-warning">Edit</a>
+                                <a asp-action="DeleteElection" asp-route-id="@election.Id" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this election?');">Delete</a>
+                            </td>
+                        </tr>
+                        index++;
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6" class="text-center">No elections found.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

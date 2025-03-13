@@ -2,8 +2,16 @@
     ViewData["Title"] = "Admin Dashboard";
 }
 
-<h2>Admin Dashboard</h2>
-<a asp-action="CreateElection" class="btn btn-primary">Create Election</a>
-<a asp-action="Elections" class="btn btn-secondary">View Elections</a>
-<a asp-action="CreateCandidate" class="btn btn-success">Create Candidate</a>
-<a asp-action="Users" class="btn btn-info">View Users</a>
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h2>Admin Dashboard</h2>
+    </div>
+    <div class="card-body">
+        <div class="d-grid gap-2">
+            <a asp-action="CreateElection" class="btn btn-primary btn-lg">Create Election</a>
+            <a asp-action="Elections" class="btn btn-secondary btn-lg">View Elections</a>
+            <a asp-action="CreateCandidate" class="btn btn-success btn-lg">Create Candidate</a>
+            <a asp-action="Users" class="btn btn-info btn-lg">View Users</a>
+        </div>
+    </div>
+</div>

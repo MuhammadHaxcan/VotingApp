@@ -13,6 +13,7 @@
             <th>Election Name</th>
             <th>Start Date</th>
             <th>End Date</th>
+            <th>Status</th>
             <th>View Details</th>
         </tr>
     </thead>
@@ -28,6 +29,11 @@
                     <td>@candidate.Election.StartDate.ToString("yyyy-MM-dd")</td>
                     <td>@candidate.Election.EndDate.ToString("yyyy-MM-dd")</td>
                     <td>
+                        <span class="badge @(candidate.Election.Status == "Upcoming" ? "badge-warning" : candidate.Election.Status == "Ongoing" ? "badge-success" : "badge-secondary")">
+                            @candidate.Election.Status
+                        </span>
+                    </td>
+                    <td>
                         <a asp-action="ElectionDetails" asp-route-electionId="@candidate.ElectionId" class="btn btn-info">View Votes</a>
                     </td>
                 </tr>
@@ -37,7 +43,7 @@
         else
         {
             <tr>
-                <td colspan="5" class="text-center">You are not participating in any elections.</td>
+                <td colspan="6" class="text-center">You are not participating in any elections.</td>
             </tr>
         }
     </tbody>

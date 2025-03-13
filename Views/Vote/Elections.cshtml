@@ -15,7 +15,7 @@
     <div class="alert alert-success">@TempData["Success"]</div>
 }
 
-<table class="table">
+<table class="table table-bordered">
     <thead>
         <tr>
             <th>Name</th>
@@ -30,7 +30,9 @@
         {
             <tr>
                 <td>@election.Name</td>
-                <td>@election.Status</td>
+                <td>
+                    @election.Status
+                </td>
                 <td>@election.StartDate.ToShortDateString()</td>
                 <td>@election.EndDate.ToShortDateString()</td>
                 <td>

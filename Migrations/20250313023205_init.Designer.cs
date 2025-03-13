@@ -12,8 +12,8 @@ using VotingApp.Data;
 namespace VotingApp.Migrations
 {
     [DbContext(typeof(VotingDbContext))]
-    [Migration("20250311020644_password")]
-    partial class password
+    [Migration("20250313023205_init")]
+    partial class init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

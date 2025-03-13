@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using VotingApp.Data;
@@ -15,118 +15,151 @@ public class VoteController : Controller
         _context = context;
     }
 
-    // List All Elections Available for Voting
+    // View All Elections
     public async Task<IActionResult> Elections()
     {
-        if (!IsUserLoggedIn()) return RedirectToAction("Login", "Auth");
+        // Update election statuses before displaying the list
+        UpdateElectionStatuses();
 
         var elections = await _context.Elections
+            .Include(e => e.Candidates)
+            .ThenInclude(c => c.User)
             .ToListAsync();
 
         return View(elections);
     }
 
-    // View Candidates in Selected Election
+    // View Election Details
+    public async Task<IActionResult> ElectionDetails(int electionId)
+    {
+        var election = await _context.Elections
+            .Include(e => e.Candidates)
+            .ThenInclude(c => c.Votes)
+            .Include(e => e.Candidates)
+            .ThenInclude(c => c.User)
+            .FirstOrDefaultAsync(e => e.Id == electionId);
+
+        if (election == null)
+        {
+            TempData["Error"] = "Election not found.";
+            return RedirectToAction("Elections");
+        }
+
+        // Update election status if it has ended
+        if (election.EndDate < DateTime.UtcNow && election.Status != "Completed")
+        {
+            election.Status = "Completed";
+            _context.Elections.Update(election);
+            await _context.SaveChangesAsync();
+        }
+
+        // Determine the winner if the election is completed
+        Candidate winner = null;
+        if (election.Status == "Completed")
+        {
+            winner = election.Candidates
+                .OrderByDescending(c => c.Votes.Count)
+                .FirstOrDefault();
+        }
+
+        // Calculate vote counts for each candidate
+        var voteCounts = election.Candidates
+            .ToDictionary(c => c.Id, c => c.Votes.Count);
+
+        ViewBag.VoteCounts = voteCounts;
+        ViewBag.Winner = winner;
+
+        return View(election);
+    }
+
+    // View Candidates for an Election
     public async Task<IActionResult> Candidates(int electionId)
     {
-        if (!IsUserLoggedIn()) return RedirectToAction("Login", "Auth");
-
         var election = await _context.Elections
             .Include(e => e.Candidates)
             .ThenInclude(c => c.User)
             .FirstOrDefaultAsync(e => e.Id == electionId);
 
-        if (election == null) return NotFound();
+        if (election == null)
+        {
+            TempData["Error"] = "Election not found.";
+            return RedirectToAction("Elections");
+        }
 
-        // Check if the user has already voted
+        // Check if the current user has already voted in this election
         int userId = GetCurrentUserId();
-        bool hasVoted = await _context.Votes.AnyAsync(v => v.UserId == userId && v.ElectionId == electionId);
+        bool hasVoted = await _context.Votes
+            .AnyAsync(v => v.UserId == userId && v.ElectionId == electionId);
+
         ViewBag.HasVoted = hasVoted;
 
         return View(election);
     }
 
-    // Cast Vote
+    // Cast a Vote
     [HttpPost]
     public async Task<IActionResult> CastVote(int candidateId, int electionId)
     {
-        if (!IsUserLoggedIn()) return RedirectToAction("Login", "Auth");
-
         int userId = GetCurrentUserId();
 
-        // Ensure the user has not voted before
-        bool alreadyVoted = await _context.Votes.AnyAsync(v => v.UserId == userId && v.ElectionId == electionId);
-        if (alreadyVoted)
+        // Check if the user has already voted in this election
+        bool hasVoted = await _context.Votes
+            .AnyAsync(v => v.UserId == userId && v.ElectionId == electionId);
+
+        if (hasVoted)
         {
             TempData["Error"] = "You have already voted in this election.";
-            return RedirectToAction("Elections");
+            return RedirectToAction("Candidates", new { electionId });
         }
 
-        // Validate Candidate Exists
-        var candidate = await _context.Candidates.FirstOrDefaultAsync(c => c.Id == candidateId && c.ElectionId == electionId);
-        if (candidate == null) return NotFound();
-
-        // Record the Vote
+        // Create a new vote
         var vote = new Vote
         {
             UserId = userId,
             CandidateId = candidateId,
-            ElectionId = electionId
+            ElectionId = electionId,
+            VoteTime = DateTime.UtcNow
         };
 
         _context.Votes.Add(vote);
         await _context.SaveChangesAsync();
 
-        TempData["Success"] = "Your vote has been recorded successfully!";
-        return RedirectToAction("Elections");
-    }
-
-    // View Election Details (Shows Winner if Ended)
-    public async Task<IActionResult> ElectionDetails(int electionId)
-    {
-        if (!IsUserLoggedIn()) return RedirectToAction("Login", "Auth");
-
-        var election = await _context.Elections
-            .Include(e => e.Candidates)
-            .ThenInclude(c => c.User)
-            .FirstOrDefaultAsync(e => e.Id == electionId);
-
-        if (election == null) return NotFound();
-
-        // Fetch vote counts per candidate
-        var candidateVotes = await _context.Votes
-            .Where(v => v.ElectionId == electionId)
-            .GroupBy(v => v.CandidateId)
-            .Select(g => new
-            {
-                CandidateId = g.Key,
-                VoteCount = g.Count()
-            })
-            .ToListAsync();
-
-        // Map votes to candidates
-        foreach (var candidate in election.Candidates)
-        {
-            candidate.Votes = new List<Vote>(); // Ensure not null
-            var voteCount = candidateVotes.FirstOrDefault(v => v.CandidateId == candidate.Id)?.VoteCount ?? 0;
-            ViewBag.VoteCounts ??= new Dictionary<int, int>();
-            ViewBag.VoteCounts[candidate.Id] = voteCount;
-        }
-
-        // Determine the winner if election has ended
-        if (election.EndDate < System.DateTime.UtcNow)
-        {
-            var winner = election.Candidates
-                .OrderByDescending(c => ViewBag.VoteCounts[c.Id])
-                .FirstOrDefault();
-
-            ViewBag.Winner = winner;
-        }
-
-        return View(election);
+        TempData["Success"] = "Your vote has been cast successfully!";
+        return RedirectToAction("Candidates", new { electionId });
     }
 
     // Helper Methods
-    private bool IsUserLoggedIn() => HttpContext.Session.GetString("UserId") != null;
-    private int GetCurrentUserId() => int.Parse(HttpContext.Session.GetString("UserId") ?? "0");
+    private int GetCurrentUserId()
+    {
+        return int.Parse(HttpContext.Session.GetString("UserId") ?? "0");
+    }
+
+    // Method to update election statuses
+    private void UpdateElectionStatuses()
+    {
+        var elections = _context.Elections.ToList();
+        foreach (var election in elections)
+        {
+            string newStatus = GetElectionStatus(election.StartDate, election.EndDate);
+            if (election.Status != newStatus)
+            {
+                election.Status = newStatus;
+                _context.Elections.Update(election);
+            }
+        }
+        _context.SaveChanges();
+    }
+
+    // Determines the correct status for an election based on the date
+    private string GetElectionStatus(DateTime startDate, DateTime endDate)
+    {
+        DateTime now = DateTime.UtcNow;
+
+        if (now < startDate)
+            return "Upcoming";
+        else if (now >= startDate && now <= endDate)
+            return "Ongoing";
+        else
+            return "Completed";
+    }
 }

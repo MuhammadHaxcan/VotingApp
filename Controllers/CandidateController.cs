@@ -38,6 +38,33 @@ public class CandidateController : Controller
 
         int userId = GetCurrentUserId();
 
+        // Get the election details
+        var election = await _context.Elections
+            .Include(e => e.Candidates)
+            .ThenInclude(c => c.Votes)
+            .Include(e => e.Candidates)
+            .ThenInclude(c => c.User)
+            .FirstOrDefaultAsync(e => e.Id == electionId);
+
+        if (election == null) return NotFound();
+
+        // Update election status if it has ended
+        if (election.EndDate < DateTime.Now && election.Status != "Completed")
+        {
+            election.Status = "Completed";
+            _context.Elections.Update(election);
+            await _context.SaveChangesAsync();
+        }
+
+        // Determine the winner if the election is completed
+        Candidate winner = null;
+        if (election.Status == "Completed")
+        {
+            winner = election.Candidates
+                .OrderByDescending(c => c.Votes.Count)
+                .FirstOrDefault();
+        }
+
         // Get the candidate's details for the selected election
         var candidate = await _context.Candidates
             .Include(c => c.Election)
@@ -47,6 +74,7 @@ public class CandidateController : Controller
 
         if (candidate == null) return NotFound();
 
+        ViewBag.Winner = winner;
         return View(candidate);
     }
 
